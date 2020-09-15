@@ -24,24 +24,21 @@ QueueHandle_t ColorHandle;
 void Task_UART(void *pvParameter){
 
     ColorHandle = xQueueCreate(2, sizeof(uint8_t));
-   if(ColorHandle == NULL){
-       UARTCharPut(UART0_BASE, 'N'); //send char on serial
-   }else{
-       UARTCharPut(UART0_BASE, 'Y');
-   }
 
-    uint8_t color = 'R';
     while(1){
-    color = UARTCharGet(UART0_BASE);    //wait to receive char on serial
+        uint8_t color = 0;
+        if(UARTCharsAvail(UART0_BASE)){
+            color = UARTCharGetNonBlocking(UART0_BASE);    //wait to receive char on serial
+            xQueueSend(ColorHandle, (void *) &color, (TickType_t) 0);
+        }
 
 
-    xQueueSend(ColorHandle, (void *) &color, (TickType_t) 0);
-    vTaskDelay(500);
+        vTaskDelay(200);
     }
 }
 void Task_LED(void *pvParameters){
-    char color , state = RED_LED;
-    uint32_t pin;
+    uint8_t color = 0, state = 0;
+    uint32_t pin = 0;
     TickType_t previousTime =  xTaskGetTickCount();
 
     while(1){
@@ -75,7 +72,8 @@ void Task_LED(void *pvParameters){
                 break;
         }
         GPIOPinWrite(LED_BASE, pin, state);
-//        state ^= pin;   //toggle
+        state ^= pin;   //toggle
+        color  = 0;
         vTaskDelay(500);
     }
 }

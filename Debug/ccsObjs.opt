@@ -1,0 +1,1 @@
+"./event_groups.obj" "./heap_2.obj" "./list.obj" "./main (6).obj" "./main.obj" "./port.obj" "./portasm.obj" "./queue.obj" "./tasks.obj" "./tm4c123gh6pm_startup_ccs.obj" "E:/Embedded Systems/Tiva C/driverlib/ccs/Debug/driverlib.lib" "../tm4c123gh6pm.cmd" -llibc.a 

@@ -20,22 +20,17 @@
 #define BLUE_LED  GPIO_PIN_2
 #define GREEN_LED  GPIO_PIN_3
 
+
 QueueHandle_t ColorHandle;
-void Task_UART(void *pvParameter){
-
-    ColorHandle = xQueueCreate(2, sizeof(uint8_t));
-
-    while(1){
-        uint8_t color = 0;
-        if(UARTCharsAvail(UART0_BASE)){
-            color = UARTCharGetNonBlocking(UART0_BASE);    //wait to receive char on serial
-            xQueueSend(ColorHandle, (void *) &color, (TickType_t) 0);
-        }
-
-
-        vTaskDelay(200);
-    }
+void UARTIntHandler(void){
+    uint8_t color = 0;
+    color = UARTCharGet(UART0_BASE);    //wait to receive char on serial
+    xQueueSendFromISR(ColorHandle, (void*) &color, NULL);
+    UARTIntClear(UART0_BASE, UART_INT_RX);
 }
+
+
+
 void Task_LED(void *pvParameters){
     uint8_t color = 0, state = 0;
     uint32_t pin = 0;
@@ -99,8 +94,11 @@ int main(void)
 
     uint32_t freq = SysCtlClockGet();
 
+    UARTIntRegister(UART0_BASE, &UARTIntHandler);
+    UARTIntEnable(UART0_BASE, UART_INT_RX);
     UARTConfigSetExpClk(UART0_BASE, freq, 9600, UART_CONFIG_WLEN_8|UART_CONFIG_STOP_ONE|UART_CONFIG_PAR_NONE);
                                                 //Set UART as 9600 baudrate, 8bit data, 1 stop bit, no parity
+    UARTFIFODisable(UART0_BASE);
 
     //print out on serial The string below
     char str[] = "Enter The char of a Color R G B: ";
@@ -110,9 +108,9 @@ int main(void)
            i++;
        }
        //here FreeRTOS start
+       ColorHandle = xQueueCreate(2, sizeof(uint8_t));
        TaskHandle_t UARTHandle, LEDHandle;
        xTaskCreate(Task_LED, "led", 128, NULL, 1, &LEDHandle);
-       xTaskCreate(Task_UART, "uart", 128, NULL, 2, &UARTHandle);
        vTaskStartScheduler();
 
 
